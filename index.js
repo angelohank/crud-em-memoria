@@ -29,10 +29,33 @@ app.post("/usuarios", (req, res) => {
     email: email,
     id: ultimoId + 1,
   };
+
   usuarios.push(novoUsuario);
   ultimoId += 1;
 
   res.status(201).json(novoUsuario.id);
+});
+
+app.delete("/usuarios/:id", (req, res) => {
+  const id = req.params.id;
+  const idNumerico = parseInt(id);
+
+  if (isNaN(idNumerico)) {
+    return res
+      .status(400)
+      .json({ mensagem: "ID inválido, precisa ser um numero" });
+  }
+
+  let posicao_do_usuario = usuarios.findIndex(
+    (usuario) => usuario.id === idNumerico
+  );
+
+  if (posicao_do_usuario === -1) {
+    return res.status(404).json({ mensagem: "Usuario nao encontrado" });
+  }
+
+  usuarios.splice(posicao_do_usuario, 1);
+  res.status(204).send();
 });
 
 app.listen(3000);
@@ -75,7 +98,7 @@ retornar 200 - ok com o usuario atualizado
 
 /**
  * CRUD em memória
- * criar uma rota pra cadastrar um novo usuario
+
  * criar uma rota para deletar um usuario
  * criar uma rota pra atulizar um usuario
  */
