@@ -58,36 +58,58 @@ app.delete("/usuarios/:id", (req, res) => {
   res.status(204).send();
 });
 
+app.patch("/usuarios/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    return res
+      .status(400)
+      .json({ mensagem: "ID inválido, precisa ser um numero" });
+  }
+
+  const usuario = usuarios.find((usuario) => usuario.id === id);
+  if (!usuario) {
+    return res.status(404).json({ mensagem: "Usuario nao encontrado" });
+  }
+
+  const { nome, email } = req.body;
+
+  if (!nome && !email) {
+    return res.status(400).json({ mensagem: "manda pelo menos um dos dados" });
+  }
+
+  console.log(`antes de atualizar ${usuario}`);
+  //atualiza o email do usuario
+  if (email) {
+    let email_existe = usuarios.findIndex((usuario) => usuario.email === email);
+
+    if (email_existe !== -1) {
+      return res.status(409).json({ mensagem: "Email ja cadastrado" });
+    }
+
+    usuario.email = email;
+    console.log(`antes de atualizar EMAIL ${usuario}`);
+  }
+
+  //atualiza o nome do usuario
+  if (nome) {
+    usuario.nome = nome;
+    console.log(`antes de atualizar NOME ${usuario}`);
+  }
+
+  res.status(200).json(usuario);
+});
+
+app.get("/usuarios/:id", (req, res) => {
+  return res
+    .status(200)
+    .json(usuarios.find((usuario) => usuario.id === parseInt(req.params.id)));
+});
+
 app.listen(3000);
 
 /*
-deletar
-
-precisa do id do usuario a ser deletado
- - transformar o id de string para numero
- - se o id for invalido, retornar 400
- - verificar se o usuario existe -> findIndex
- - se nao existir, retornar 404
- - se existir, deletar -> splice
- - retornar 204 - no content 
-*/
-
-/*
 atualizar
-
-precisa do id do usuario a ser atualizado
-transformar o id de string para numero
-se o id for invalido, retorna 400
-
-procurar o usuario dentro do array -> find
-se nao encontrar, retornar 404
-
-precisa dos dados para atualizar (nome ou email)
-pegar os dados do body (igual o create)
-se nao tiver nenhum dos dados que precisamos, retornar 400
-
-caso tenha email, verificar se ja nao existe outro usuario com esse email -> some
-caso exista, retornar 409 - conflito
 
 dando tudo certo
 nome do usuario recebe o novo nome (se tiver)
@@ -99,6 +121,5 @@ retornar 200 - ok com o usuario atualizado
 /**
  * CRUD em memória
 
- * criar uma rota para deletar um usuario
  * criar uma rota pra atulizar um usuario
  */
