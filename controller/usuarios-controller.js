@@ -1,3 +1,7 @@
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 let ultimoId = 1;
 
 const usuario_admin = {
@@ -8,14 +12,18 @@ const usuario_admin = {
 
 let usuarios = [usuario_admin];
 
-function listarTodosOsUsuarios(req, res) {
-  console.log("CHEGUEI NO CONTROLLER");
+async function listarTodosOsUsuarios(req, res) {
+  try {
+    const usuarios_do_banco = await prisma.users.findMany();
 
-  res.status(200).json(usuarios);
+    res.status(200).json(usuarios_do_banco);
+  } catch (erro) {
+    console.log(erro);
+  }
 }
 
-function criarUsuario(req, res) {
-  const { nome, email } = req.body;
+async function criarUsuario(req, res) {
+  const { nome, email, idade } = req.body;
 
   if (!nome || !email) {
     return res.status(400).json({ mensagem: "Nome e email são obrigatórios" });
@@ -24,38 +32,33 @@ function criarUsuario(req, res) {
   const novoUsuario = {
     nome: nome,
     email: email,
-    id: ultimoId + 1,
+    idade: idade,
   };
 
-  usuarios.push(novoUsuario);
-  ultimoId += 1;
+  const criarUser = await prisma.users.create({
+    data: novoUsuario,
+  });
 
-  res.status(201).json(novoUsuario.id);
+  res.status(201).json(criarUser);
 }
 
-function deletarUsuario(req, res) {
-  const id = req.params.id;
-  const idNumerico = parseInt(id);
-
-  if (isNaN(idNumerico)) {
+async function deletarUsuario(req, res) {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
     return res
       .status(400)
-      .json({ mensagem: "ID inválido, precisa ser um numero" });
+      .json({ message: "parametro precisa ser um inteiro" });
+  }
+  try {
+    await prisma.users.delete({ where: { id: id } });
+  } catch (erro) {
+    console.log(erro.message);
   }
 
-  let posicao_do_usuario = usuarios.findIndex(
-    (usuario) => usuario.id === idNumerico
-  );
-
-  if (posicao_do_usuario === -1) {
-    return res.status(404).json({ mensagem: "Usuario nao encontrado" });
-  }
-
-  usuarios.splice(posicao_do_usuario, 1);
   res.status(204).send();
 }
 
-function alterarUsuario(req, res) {
+async function alterarUsuario(req, res) {
   const id = parseInt(req.params.id);
 
   if (isNaN(id)) {
@@ -64,43 +67,23 @@ function alterarUsuario(req, res) {
       .json({ mensagem: "ID inválido, precisa ser um numero" });
   }
 
-  const usuario = usuarios.find((usuario) => usuario.id === id);
-  if (!usuario) {
-    return res.status(404).json({ mensagem: "Usuario nao encontrado" });
-  }
-
-  const { nome, email } = req.body;
-
-  if (!nome && !email) {
-    return res.status(400).json({ mensagem: "manda pelo menos um dos dados" });
-  }
-
-  console.log(`antes de atualizar ${usuario}`);
-  //atualiza o email do usuario
-  if (email) {
-    let email_existe = usuarios.findIndex((usuario) => usuario.email === email);
-
-    if (email_existe !== -1) {
-      return res.status(409).json({ mensagem: "Email ja cadastrado" });
-    }
-
-    usuario.email = email;
-    console.log(`antes de atualizar EMAIL ${usuario}`);
-  }
-
-  //atualiza o nome do usuario
-  if (nome) {
-    usuario.nome = nome;
-    console.log(`antes de atualizar NOME ${usuario}`);
-  }
-
-  res.status(200).json(usuario);
+  const { nome, email, idade } = req.body;
+  //TEM QUE ESTAR EM UM TRY CATCH
+  await prisma.users.update({
+    where: { id: id },
+    data: {
+      nome: nome,
+      email: email,
+      idade: idade,
+    },
+  });
+  res.status(204).send();
 }
 
-function buscarPeloId(req, res) {
-  return res
-    .status(200)
-    .json(usuarios.find((usuario) => usuario.id === parseInt(req.params.id)));
+async function buscarPeloId(req, res) {
+  const id = parseInt(req.params.id);
+  const usuario = await prisma.users.findUnique({ where: { id: id } });
+  res.status(200).json(usuario);
 }
 
 export {

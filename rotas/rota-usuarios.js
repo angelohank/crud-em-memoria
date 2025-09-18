@@ -11,6 +11,7 @@ const roteador = Router();
 
 //agora eu vou passar as rotas pra ele
 roteador.get("/", (req, res) => {
+  console.log(req.headers);
   listarTodosOsUsuarios(req, res);
 });
 
